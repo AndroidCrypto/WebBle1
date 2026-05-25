@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ESP32 Web BLE Configurator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            max-width: 450px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #222;
+            font-size: 24px;
+        }
+        
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            font-size: 16px;
+            color: #444;
+        }
+        
+        input, select { 
+            width: 100%; 
+            padding: 14px 16px; 
+            font-size: 18px; /* Prevents iOS auto-zoom and increases readability */
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            background-color: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+            -webkit-appearance: none; /* Uniform look across iOS and Android */
+        }
+
+        /* Re-adding a clean dropdown arrow for webkit browsers since we disabled native appearance */
+        select {
+background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M0 3l5 5 5-5z' fill='%23666'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+
+        input:focus, select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 8px;
+            cursor: pointer; 
+            font-size: 18px; 
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 123, 255, 0.15);
+            transition: background-color 0.2s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        button:active {
+            background-color: #0056b3;
+            transform: scale(0.98);
+        }
+        
+        #status { 
+            margin-top: 25px; 
+            font-style: italic; 
+            color: #666; 
+            text-align: center;
+            font-size: 15px;
+            padding: 14px;
+            border-radius: 6px;
+            background-color: #e9ecef;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>ESP32 Configuration</h2>
+    
+    <div class="form-group">
+        <label for="ssid">Wi-Fi Network Name (SSID):</label>
+        <input type="text" id="ssid" placeholder="e.g. MyHomeWiFi" autocomplete="off" autocapitalize="none">
+    </div>
+    
+    <div class="form-group">
+        <label for="pass">Wi-Fi Password:</label>
+        <input type="password" id="pass" placeholder="********">
+    </div>
+    
+    <div class="form-group">
+        <label for="tz">Timezone (POSIX):</label>
+        <select id="tz">
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">Europe (CET / CEST)</option>
+            <option value="EST5EDT,M3.2.0,M11.1.0">North America (EST / EDT)</option>
+        </select>
+    </div>
+    
+    <button id="connectBtn">Connect & Send</button>
+    
+    <div id="status">Ready to connect.</div>
+
+    <script>
+        const SERVICE_UUID        = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHARACTERISTIC_SSID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CHARACTERISTIC_PASS = "ae418b1d-ef2a-4467-83b6-20d20d7da4e8";
+        const CHARACTERISTIC_TZ   = "c9d31122-386d-495c-9c04-f584400c4366";
+
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            const ssid = document.getElementById('ssid').value;
+            const pass = document.getElementById('pass').value;
+            const tz = document.getElementById('tz').value;
+            const statusDiv = document.getElementById('status');
+
+            if (!ssid) {
+                alert("Please enter a Wi-Fi SSID!");
+                return;
+            }
+
+            try {
+                statusDiv.innerText = "Searching for ESP32...";
+                statusDiv.style.backgroundColor = "#fff3cd"; // Yellow for "In Progress"
+                
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [SERVICE_UUID] }]
+                });
+
+                statusDiv.innerText = "Connecting to device...";
+                const server = await device.gatt.connect();
+
+                statusDiv.innerText = "Getting BLE Service...";
+                const service = await server.getPrimaryService(SERVICE_UUID);
+
+                const encoder = new TextEncoder();
+
+                statusDiv.innerText = "Sending SSID...";
+                const charSSID = await service.getCharacteristic(CHARACTERISTIC_SSID);
+                await charSSID.writeValue(encoder.encode(ssid));
+
+                statusDiv.innerText = "Sending Password...";
+                const charPASS = await service.getCharacteristic(CHARACTERISTIC_PASS);
+                await charPASS.writeValue(encoder.encode(pass));
+
+                statusDiv.innerText = "Sending Timezone...";
+                const charTZ = await service.getCharacteristic(CHARACTERISTIC_TZ);
+                await charTZ.writeValue(encoder.encode(tz));
+
+                statusDiv.innerText = "Success! Data sent. ESP32 is connecting...";
+                statusDiv.style.backgroundColor = "#d4edda"; // Green for success
+                device.gatt.disconnect();
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = "Error: " + error.message;
+                statusDiv.style.backgroundColor = "#f8d7da"; // Red for error
+            }
+        });
+    </script>
+</body>
+</html>
