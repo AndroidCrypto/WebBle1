@@ -10,3 +10,9 @@ This repository stores the files used for ESP32 Web BLE projects
 [wifi_posix_01.html](https://github.com/AndroidCrypto/WebBle1/blob/main/wifi_posix_01.html)
 
 Use: https://androidcrypto.github.io/WebBle1/wifi_posix_01.html
+
+### V02: larger characters, drop down menu for POSIX string, English language
+
+[wifi_posix_02.html](https://github.com/AndroidCrypto/WebBle1/blob/main/wifi_posix_02.html)
+
+Use: https://androidcrypto.github.io/WebBle1/wifi_posix_02.html
