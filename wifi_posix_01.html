@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Web BLE Configurator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 40px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 20px; font-style: italic; color: #555; }
+    </style>
+</head>
+<body>
+
+    <h2>ESP32 WLAN & Zeit Setup</h2>
+    
+    <div class="form-group">
+        <label for="ssid">WLAN Name (SSID):</label>
+        <input type="text" id="ssid" placeholder="z.B. MeinWLAN">
+    </div>
+    
+    <div class="form-group">
+        <label for="pass">WLAN Passwort:</label>
+        <input type="password" id="pass" placeholder="********">
+    </div>
+    
+    <div class="form-group">
+        <label for="tz">POSIX Zeitzone:</label>
+        <input type="text" id="tz" value="CET-1CEST,M3.5.0,M10.5.0/3">
+    </div>
+    
+    <button id="connectBtn">Verbinden & Senden</button>
+    
+    <div id="status">Bereit.</div>
+
+    <script>
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHARACTERISTIC_SSID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const CHARACTERISTIC_PASS = "ae418b1d-ef2a-4467-83b6-20d20d7da4e8";
+        const CHARACTERISTIC_TZ = "c9d31122-386d-495c-9c04-f584400c4366";
+
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            const ssid = document.getElementById('ssid').value;
+            const pass = document.getElementById('pass').value;
+            const tz = document.getElementById('tz').value;
+            const statusDiv = document.getElementById('status');
+
+            if (!ssid) {
+                alert("Bitte gib eine SSID ein!");
+                return;
+            }
+
+            try {
+                statusDiv.innerText = "Suche nach ESP32...";
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [SERVICE_UUID] }]
+                });
+
+                statusDiv.innerText = "Verbinde mit Gerät...";
+                const server = await device.gatt.connect();
+
+                statusDiv.innerText = "Hole BLE Service...";
+                const service = await server.getPrimaryService(SERVICE_UUID);
+
+                const encoder = new TextEncoder();
+
+                // 1. SSID senden
+                statusDiv.innerText = "Sende SSID...";
+                const charSSID = await service.getCharacteristic(CHARACTERISTIC_SSID);
+                await charSSID.writeValue(encoder.encode(ssid));
+
+                // 2. Passwort senden
+                statusDiv.innerText = "Sende Passwort...";
+                const charPASS = await service.getCharacteristic(CHARACTERISTIC_PASS);
+                await charPASS.writeValue(encoder.encode(pass));
+
+                // 3. Zeitzone senden (Triggert auf dem ESP32 die Verarbeitung)
+                statusDiv.innerText = "Sende Zeitzone...";
+                const charTZ = await service.getCharacteristic(CHARACTERISTIC_TZ);
+                await charTZ.writeValue(encoder.encode(tz));
+
+                statusDiv.innerText = "Daten erfolgreich gesendet! ESP32 verbindet sich jetzt.";
+                device.gatt.disconnect();
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = "Fehler: " + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
