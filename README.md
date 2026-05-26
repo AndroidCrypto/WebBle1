@@ -16,3 +16,15 @@ Use: https://androidcrypto.github.io/WebBle1/wifi_posix_01.html
 [wifi_posix_02.html](https://github.com/AndroidCrypto/WebBle1/blob/main/wifi_posix_02.html)
 
 Use: https://androidcrypto.github.io/WebBle1/wifi_posix_02.html
+
+### V03: POSIX String: drop-down field editable
+
+[wifi_posix_03.html](https://github.com/AndroidCrypto/WebBle1/blob/main/wifi_posix_03.html)
+
+Use: https://androidcrypto.github.io/WebBle1/wifi_posix_03.html
+
+### V04: in Wi-Fi password input: icon for showing the password
+
+[wifi_posix_04.html](https://github.com/AndroidCrypto/WebBle1/blob/main/wifi_posix_04.html)
+
+Use: https://androidcrypto.github.io/WebBle1/wifi_posix_04.html
